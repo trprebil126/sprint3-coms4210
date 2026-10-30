@@ -1,0 +1,2 @@
+I created this workpage on VS Code using an auto balance agent, for the most part I fed the agent information from Sprint 3, the google Gemini work book, and some personal wants for the page. I then had it create the page and I looked through it to make sure everything was running smoothly.
+I am actually pretty happy with the final result, this page shows the two examples we worked on through the sprint, as well as a comparison sheet that gives more information to users. I believe this constitutes as a pretty concise yet informative page. 
