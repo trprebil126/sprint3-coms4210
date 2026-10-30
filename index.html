@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AC Attacks vs. Side-Channel Attacks — Interactive Module</title>
+<style>
+  :root {
+    --bg: #0f172a; --panel: #1e293b; --panel2: #273449; --text: #e2e8f0;
+    --muted: #94a3b8; --ac: #f97316; --sc: #38bdf8; --ok: #4ade80; --bad: #f87171;
+    --border: #334155;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  header { padding: 24px 20px 12px; text-align: center; }
+  header h1 { margin: 0 0 6px; font-size: 1.6rem; }
+  header p { margin: 0; color: var(--muted); }
+  nav { display: flex; justify-content: center; gap: 8px; padding: 14px 12px; flex-wrap: wrap; }
+  nav button {
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    padding: 10px 18px; border-radius: 8px; cursor: pointer; font-size: 0.95rem;
+  }
+  nav button.active { border-color: var(--ac); background: var(--panel2); font-weight: 600; }
+  main { max-width: 980px; margin: 0 auto; padding: 8px 20px 60px; }
+  .tab { display: none; }
+  .tab.active { display: block; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 18px; }
+  .card h2 { margin-top: 0; font-size: 1.2rem; }
+  .card h3 { font-size: 1.02rem; margin-bottom: 6px; }
+  .muted { color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.92rem; }
+  th, td { border: 1px solid var(--border); padding: 9px 11px; text-align: left; vertical-align: top; }
+  th { background: var(--panel2); }
+  td.dim { font-weight: 600; background: var(--panel2); width: 20%; }
+  .ac-col { color: var(--ac); } .sc-col { color: var(--sc); }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+  .pill.ac { background: rgba(249,115,22,.15); color: var(--ac); border: 1px solid var(--ac); }
+  .pill.sc { background: rgba(56,189,248,.15); color: var(--sc); border: 1px solid var(--sc); }
+  .pill.ok { background: rgba(74,222,128,.15); color: var(--ok); border: 1px solid var(--ok); }
+  .pill.bad { background: rgba(248,113,113,.15); color: var(--bad); border: 1px solid var(--bad); }
+  button.action {
+    background: var(--ac); color: #111; border: none; padding: 10px 18px; border-radius: 8px;
+    cursor: pointer; font-weight: 700; font-size: 0.95rem;
+  }
+  button.action.sc { background: var(--sc); }
+  button.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); padding: 10px 16px; border-radius: 8px; cursor: pointer; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  select, input[type=text] {
+    background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+    padding: 9px 12px; border-radius: 8px; font-size: 0.95rem;
+  }
+  input[type=range] { width: 100%; accent-color: var(--ac); }
+  .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin: 14px 0; }
+  .controls label { font-size: 0.9rem; color: var(--muted); }
+  /* linked list */
+  .list-wrap { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; padding: 18px 6px; min-height: 90px; }
+  .node {
+    width: 64px; height: 64px; border-radius: 10px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem;
+    background: var(--panel2); border: 2px solid var(--border); transition: all .25s;
+  }
+  .node.rect { border-color: var(--ac); }
+  .node.visited { background: rgba(74,222,128,.18); border-color: var(--ok); }
+  .node.current { background: rgba(249,115,22,.3); border-color: var(--ac); transform: scale(1.12); }
+  .node.loop { background: rgba(248,113,113,.3); border-color: var(--bad); animation: pulse .6s infinite alternate; }
+  @keyframes pulse { from { transform: scale(1.05);} to { transform: scale(1.2);} }
+  .arrow { color: var(--muted); font-size: 1.3rem; padding: 0 2px; }
+  .loop-note { color: var(--bad); font-weight: 700; width: 100%; text-align: center; margin-top: 4px; min-height: 20px; }
+  .stat-row { display: flex; gap: 26px; flex-wrap: wrap; margin-top: 12px; font-size: 0.95rem; }
+  .stat-row b { font-size: 1.15rem; }
+  /* timing bars */
+  .bar-row { display: flex; align-items: center; gap: 10px; margin: 7px 0; font-size: 0.9rem; }
+  .bar-label { width: 110px; text-align: right; font-family: Consolas, monospace; }
+  .bar-track { flex: 1; background: var(--panel2); border-radius: 6px; height: 26px; overflow: hidden; border: 1px solid var(--border); }
+  .bar-fill { height: 100%; width: 0; background: var(--sc); transition: width .5s; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; font-size: 0.75rem; color: #06202e; font-weight: 700; }
+  .bar-fill.winner { background: var(--ok); }
+  .log { background: #0b1220; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; font-family: Consolas, monospace; font-size: 0.85rem; min-height: 120px; max-height: 220px; overflow-y: auto; white-space: pre-wrap; }
+  .log .ok { color: var(--ok); } .log .bad { color: var(--bad); } .log .dim { color: var(--muted); }
+  .callout { border-left: 4px solid var(--ac); background: var(--panel2); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .callout.sc { border-left-color: var(--sc); }
+  .callout.ok { border-left-color: var(--ok); }
+  code { background: var(--panel2); padding: 1px 6px; border-radius: 5px; font-size: 0.88em; }
+  .guess-box { font-family: Consolas, monospace; font-size: 1.4rem; letter-spacing: 6px; text-align: center; padding: 10px; background: var(--panel2); border-radius: 8px; border: 1px solid var(--border); margin: 10px 0; }
+  .guess-box .found { color: var(--ok); } .guess-box .cur { color: var(--sc); } .guess-box .unk { color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Algorithmic Complexity Attacks vs. Side-Channel Attacks</h1>
+  <p>An interactive teaching module — explore how these two vulnerability classes differ and how each one works.</p>
+</header>
+
+<nav>
+  <button data-tab="compare" class="active">📊 Compare</button>
+  <button data-tab="ac">🔥 AC Attack Simulator</button>
+  <button data-tab="sc">🕵️ Side-Channel Simulator</button>
+</nav>
+
+<main>
+<!-- ==================== COMPARE TAB ==================== -->
+<section id="tab-compare" class="tab active">
+  <div class="card">
+    <h2>Comparison Summary</h2>
+    <p class="muted">Click a row to highlight it. <span class="pill ac">AC Attack</span> <span class="pill sc">Side-Channel</span></p>
+    <table id="cmpTable">
+      <tr><th>Dimension</th><th class="ac-col">Algorithmic Complexity (AC) Attacks</th><th class="sc-col">Side-Channel Attacks</th></tr>
+      <tr><td class="dim">Primary Target (C-I-A)</td><td><b>Availability</b> — resource exhaustion / denial-of-service</td><td><b>Confidentiality</b> — information leakage / secret extraction</td></tr>
+      <tr><td class="dim">Flaw Type</td><td>Exploits <b>worst-case algorithmic complexity</b> in application logic</td><td>Exploits <b>unintended physical or behavioral traces</b> during execution</td></tr>
+      <tr><td class="dim">CWE Mapping</td><td><b>CWE-407</b>: Inefficient Algorithmic Complexity</td><td><b>CWE-208</b>: Observable Timing Discrepancy</td></tr>
+      <tr><td class="dim">Attacker Interaction</td><td><b>Active</b>: sends carefully crafted "corner-case" inputs to maximize runtime or memory</td><td><b>Passive or Active</b>: measures physical/execution metrics (timing, power, cache)</td></tr>
+      <tr><td class="dim">Impact</td><td>Application slowdown, thread locking, system crash, or temporary unresponsiveness</td><td>Recovery of private data (passwords, usernames, RSA keys, cached memory)</td></tr>
+      <tr><td class="dim">Primary Countermeasure</td><td>Replacing algorithms, input sanitization, and strict resource limits / timeouts</td><td><b>Constant-time algorithms</b>, response padding, and randomizing execution noise</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Key Differences &amp; Mechanics</h2>
+    <h3>1. Target Security Property &amp; Attacker Goal</h3>
+    <p class="muted">AC attacks go after <b>availability</b> — the attacker wants to make the system slow or unresponsive for everyone. Side-channel attacks go after <b>confidentiality</b> — the attacker wants to quietly learn secrets without breaking anything.</p>
+    <h3>2. Intended Logic vs. Unintended Side-Effects</h3>
+    <p class="muted">AC attacks abuse the <b>intended logic</b> of the program itself: the code does exactly what it was written to do, just on an input that forces the worst-case running time. Side-channel attacks abuse <b>unintended side-effects</b> — the algorithm's outputs are never touched; instead the attacker observes <i>how</i> it runs (how long it takes, how much power it draws, what it does to the cache).</p>
+    <h3>3. Attack Manifestation &amp; Examples</h3>
+    <p class="muted">AC example: crafting input that turns an O(n) linked-list traversal into an infinite loop (try the AC Simulator tab!). Side-channel example: measuring how long a password check takes to guess the password one character at a time (try the Side-Channel Simulator tab!).</p>
+  </div>
+
+  <div class="card">
+    <h2>The Defensive Intersection &amp; Trade-Offs</h2>
+    <p class="muted">Defenses for one class can open the door to the other. A <b>timeout / resource limit</b> is the standard AC fix — but a request that is abruptly cut off at a fixed time can itself become a <b>timing signal</b> an attacker measures. Conversely, making an operation <b>constant-time</b> to stop a timing side-channel means doing the worst-case work <i>every</i> time, which raises the baseline cost an AC attacker can amplify. Good designs budget for both: constant-time operations on secrets, plus input validation and resource caps on everything attacker-controlled.</p>
+  </div>
+</section>
+
+<!-- ==================== AC SIMULATOR TAB ==================== -->
+<section id="tab-ac" class="tab">
+  <div class="card">
+    <h2>🔥 AC Attack Simulator — the "static next" linked-list bug <span class="pill ac">CWE-407</span></h2>
+    <p class="muted">Based on a real class exercise. A catalog links 6 shapes into a list and <code>getStats()</code> traverses it with <code>while(c != null)</code> — an O(n) walk. But <code>Rectangle</code> stores its <code>next</code> pointer in a <b>static</b> field shared by <i>all</i> Rectangles. Place Rectangles so the shared pointer creates a <b>cycle</b>, and the "linear" traversal never ends — only a timeout guard saves it. That's an AC attack: a crafted input turns O(n) into O(∞).</p>
+
+    <div class="controls">
+      <label>Rectangle positions (0–5):</label>
+      <select id="rectA"></select>
+      <select id="rectB"></select>
+      <button class="action" id="btnTraverse">▶ Run getStats()</button>
+      <button class="ghost" id="btnReset">↺ Reset</button>
+    </div>
+    <p class="muted" style="margin:4px 0 0">Hint: a cycle forms only when <b>two Rectangles</b> exist and the <b>last one is at index 5</b>. Try (4, 5)!</p>
+
+    <div class="list-wrap" id="listWrap"></div>
+    <div class="loop-note" id="loopNote"></div>
+
+    <div class="stat-row">
+      <span>Steps taken: <b id="statSteps">0</b></span>
+      <span>List size: <b>6</b></span>
+      <span>Status: <b id="statStatus">—</b></span>
+    </div>
+
+    <div class="callout" id="acVerdict" style="display:none"></div>
+  </div>
+
+  <div class="card">
+    <h3>What just happened?</h3>
+    <p class="muted">Pick positions and run the traversal. With a normal list, <code>getStats()</code> finishes in exactly 6 steps. With a cyclic list, the step counter blows past 6 and the <code>totalShapesCount &gt; shapes.length</code> guard throws <code>TimeLimitExceededException</code> — the application-level symptom of an AC attack (in a real server, this is the request that hangs a thread or pegs a CPU core).</p>
+  </div>
+</section>
+
+<!-- ==================== SIDE-CHANNEL TAB ==================== -->
+<section id="tab-sc" class="tab">
+  <div class="card">
+    <h2>🕵️ Side-Channel Simulator — timing attack on a password check <span class="pill sc">CWE-208</span></h2>
+    <p class="muted">A server checks a 4-digit PIN one character at a time and <b>returns as soon as a character is wrong</b>. That early-exit means a guess with more correct leading digits takes measurably <b>longer</b>. The PIN is never sent back — but the response <i>time</i> leaks it, digit by digit. Pick a secret PIN, then run the attacker and watch it recover your PIN using only timing.</p>
+
+    <div class="controls">
+      <label>Secret PIN (4 digits):</label>
+      <input type="text" id="pinInput" maxlength="4" value="1337" style="width:90px; font-family:Consolas,monospace; letter-spacing:3px">
+      <label><input type="checkbox" id="constantTime"> Constant-time check (countermeasure)</label>
+      <button class="action sc" id="btnAttack">▶ Run timing attack</button>
+      <button class="ghost" id="btnScReset">↺ Reset</button>
+    </div>
+
+    <div class="guess-box" id="guessBox"><span class="unk">_ _ _ _</span></div>
+    <div id="bars"></div>
+    <div class="log" id="scLog"></div>
+    <div class="callout sc" id="scVerdict" style="display:none"></div>
+  </div>
+
+  <div class="card">
+    <h3>What just happened?</h3>
+    <p class="muted">For each position, the attacker tries every digit 0–9 and measures response time. The digit that took longest is the one that passed the comparison at that position — so the attacker locks it in and moves on. Instead of 10⁴ = 10,000 guesses, the PIN falls in at most 4 × 10 = <b>40 guesses</b>. Turn on <b>constant-time check</b> and rerun: every guess takes the same time, the timing bars carry no signal, and the attacker's "best guess" is pure noise. That's the classic countermeasure — and the trade-off is that every check now costs the worst-case time.</p>
+  </div>
+</section>
+</main>
+
+<script>
+// ---------- tabs ----------
+document.querySelectorAll('nav button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('nav button').forEach(x => x.classList.toggle('active', x === b));
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + b.dataset.tab));
+  });
+});
+
+// ---------- compare table row highlight ----------
+document.querySelectorAll('#cmpTable tr').forEach((tr, i) => {
+  if (i === 0) return;
+  tr.style.cursor = 'pointer';
+  tr.addEventListener('click', () => {
+    tr.style.outline = tr.style.outline ? '' : '2px solid var(--ac)';
+  });
+});
+
+// ==================== AC SIMULATOR ====================
+const SHAPES = ['Circle','Hexagon','Oval','Square','Triangle'];
+const rectA = document.getElementById('rectA'), rectB = document.getElementById('rectB');
+for (let i = 0; i < 6; i++) {
+  rectA.add(new Option('Rectangle @ ' + i, i));
+  rectB.add(new Option('Rectangle @ ' + i, i));
+}
+rectA.value = 4; rectB.value = 5;
+
+let nodes = [], nextPtr = [], animating = false, timer = null;
+
+function buildList() {
+  clearTimeout(timer); animating = false;
+  const a = +rectA.value, b = +rectB.value;
+  nodes = []; nextPtr = [];
+  // static-next simulation: all Rectangles share ONE pointer; last setNext wins for every Rectangle
+  let rectStaticNext = null;
+  for (let i = 0; i < 6; i++) {
+    const isRect = (i === a || i === b);
+    nodes.push({ name: isRect ? 'Rectangle' : SHAPES[(i * 2 + 1) % SHAPES.length], rect: isRect });
+  }
+  // build(): current.setNext(shape) for consecutive pairs
+  for (let i = 0; i < 6; i++) {
+    if (i < 5) {
+      if (nodes[i].rect) rectStaticNext = i + 1;   // each Rectangle.setNext overwrites the shared static
+      else nextPtr[i] = i + 1;
+    } else if (!nodes[i].rect) {
+      nextPtr[i] = null;
+    }
+  }
+  // every Rectangle's getNext() returns the shared static value
+  for (let i = 0; i < 6; i++) if (nodes[i].rect) nextPtr[i] = rectStaticNext;
+  renderList(-1, new Set());
+  document.getElementById('statSteps').textContent = '0';
+  document.getElementById('statStatus').textContent = '—';
+  document.getElementById('loopNote').textContent = '';
+  const v = document.getElementById('acVerdict'); v.style.display = 'none';
+}
+
+function renderList(current, visited) {
+  const wrap = document.getElementById('listWrap');
+  wrap.innerHTML = '';
+  nodes.forEach((n, i) => {
+    const d = document.createElement('div');
+    d.className = 'node' + (n.rect ? ' rect' : '') + (visited.has(i) ? ' visited' : '') + (i === current ? ' current' : '');
+    d.innerHTML = `<span>${n.name.slice(0,4)}</span><span class="muted" style="font-size:.7rem">[${i}]</span>`;
+    wrap.appendChild(d);
+    if (i < 5) {
+      const ar = document.createElement('span');
+      ar.className = 'arrow';
+      ar.textContent = '→';
+      wrap.appendChild(ar);
+    }
+  });
+}
+
+document.getElementById('btnTraverse').addEventListener('click', () => {
+  if (animating) return;
+  buildList();
+  animating = true;
+  let c = 0, steps = 0;
+  const visited = new Set();
+  const status = document.getElementById('statStatus');
+  const stepsEl = document.getElementById('statSteps');
+  const verdict = document.getElementById('acVerdict');
+
+  function step() {
+    if (c === null || c === undefined) {
+      animating = false;
+      status.innerHTML = '<span class="pill ok">Finished in 6 steps — O(n) ✓</span>';
+      verdict.style.display = 'block';
+      verdict.className = 'callout ok';
+      verdict.innerHTML = '<b>No vulnerability triggered.</b> The traversal reached the end of the list in exactly 6 steps. This input is a best/average case — no reward for the attacker.';
+      return;
+    }
+    visited.add(c);
+    steps++;
+    stepsEl.textContent = steps;
+    renderList(c, visited);
+    if (steps > 6) {
+      animating = false;
+      const cur = document.querySelectorAll('.node')[c];
+      if (cur) cur.classList.add('loop');
+      document.getElementById('loopNote').textContent = `↩ node [${c}].getNext() returned an already-visited node — CYCLE!`;
+      status.innerHTML = '<span class="pill bad">TimeLimitExceededException! ⏱</span>';
+      verdict.style.display = 'block';
+      verdict.className = 'callout';
+      verdict.innerHTML = `<b>AC vulnerability triggered! 🎯 +1 reward point.</b> The shared <code>static next</code> pointer created a cycle, so <code>while(c != null)</code> never terminated. The step counter blew past the list size (6) and the timeout guard had to kill it. A crafted input turned an O(n) operation into an infinite loop — a denial-of-service against <b>availability</b>.`;
+      return;
+    }
+    c = nextPtr[c];
+    timer = setTimeout(step, 550);
+  }
+  step();
+});
+
+document.getElementById('btnReset').addEventListener('click', buildList);
+rectA.addEventListener('change', buildList);
+rectB.addEventListener('change', buildList);
+buildList();
+
+// ==================== SIDE-CHANNEL SIMULATOR ====================
+const pinInput = document.getElementById('pinInput');
+const scLog = document.getElementById('scLog');
+const bars = document.getElementById('bars');
+const guessBox = document.getElementById('guessBox');
+let scRunning = false;
+
+function checkTime(guess, pin, constant) {
+  // simulated response time: 1 unit per matching leading char (+1 for the failing compare), plus noise
+  let matched = 0;
+  for (let i = 0; i < 4; i++) {
+    if (guess[i] === pin[i]) matched++;
+    else break;
+  }
+  const base = constant ? 5 : matched + 1;   // constant-time always does full work
+  return base * 40 + Math.random() * 6;      // ms-ish, tiny noise
+}
+
+function renderGuess(found, curDigit) {
+  let html = '';
+  for (let i = 0; i < 4; i++) {
+    if (i < found.length) html += `<span class="found">${found[i]}</span> `;
+    else if (i === found.length && curDigit !== undefined) html += `<span class="cur">${curDigit}</span> `;
+    else html += `<span class="unk">_</span> `;
+  }
+  guessBox.innerHTML = html;
+}
+
+function log(msg, cls) {
+  const d = document.createElement('div');
+  if (cls) d.className = cls;
+  d.textContent = msg;
+  scLog.appendChild(d);
+  scLog.scrollTop = scLog.scrollHeight;
+}
+
+document.getElementById('btnAttack').addEventListener('click', async () => {
+  if (scRunning) return;
+  const pin = pinInput.value.replace(/\D/g, '').padEnd(4, '0').slice(0, 4);
+  pinInput.value = pin;
+  const constant = document.getElementById('constantTime').checked;
+  scRunning = true;
+  scLog.innerHTML = ''; bars.innerHTML = '';
+  document.getElementById('scVerdict').style.display = 'none';
+  let found = '';
+  log(`Target PIN set (hidden from attacker). Constant-time: ${constant ? 'ON' : 'OFF'}`, 'dim');
+
+  for (let pos = 0; pos < 4; pos++) {
+    log(`--- Position ${pos}: measuring response time for digits 0-9 ---`, 'dim');
+    const rowBars = [];
+    for (let d = 0; d < 10; d++) {
+      const guess = (found + d).padEnd(4, '0');
+      const t = checkTime(guess, pin, constant);
+      rowBars.push({ d, t });
+      renderGuess(found, d);
+      let row = document.getElementById('bar-' + pos + '-' + d);
+      if (!row) {
+        row = document.createElement('div');
+        row.className = 'bar-row'; row.id = 'bar-' + pos + '-' + d;
+        row.innerHTML = `<span class="bar-label">pos${pos} = ${d}</span><div class="bar-track"><div class="bar-fill"></div></div>`;
+        bars.appendChild(row);
+      }
+      await new Promise(r => setTimeout(r, 90));
+      row.querySelector('.bar-fill').style.width = Math.min(100, t / 2.4) + '%';
+      row.querySelector('.bar-fill').textContent = t.toFixed(0) + 'ms';
+    }
+    const best = rowBars.reduce((m, x) => x.t > m.t ? x : m);
+    document.getElementById('bar-' + pos + '-' + best.d).querySelector('.bar-fill').classList.add('winner');
+    if (!constant) {
+      found += best.d;
+      log(`pos ${pos}: digit ${best.d} slowest (${best.t.toFixed(0)}ms) → locked in. Guess so far: ${found}`, 'ok');
+    } else {
+      log(`pos ${pos}: all digits ≈ equal time — no signal. Attacker picks ${best.d} but it's just noise.`, 'bad');
+      found += best.d;
+    }
+    renderGuess(found);
+  }
+
+  const verdict = document.getElementById('scVerdict');
+  verdict.style.display = 'block';
+  if (!constant) {
+    const ok = found === pin;
+    verdict.className = 'callout sc';
+    verdict.innerHTML = ok
+      ? `<b>Attack succeeded! 🔓 PIN recovered: ${found}</b> — in at most 40 timed guesses instead of 10,000. Nothing but response <i>time</i> was observed: a confidentiality breach via <b>CWE-208 Observable Timing Discrepancy</b>.`
+      : `<b>Attack finished with guess ${found}</b> (noise can cause a miss — run again). The timing signal leaks the PIN digit-by-digit.`;
+    log(ok ? `✔ Recovered PIN ${found} — matches the secret!` : `✘ Guess ${found} missed (noise). Try again.`, ok ? 'ok' : 'bad');
+  } else {
+    verdict.className = 'callout ok';
+    verdict.innerHTML = `<b>Attack defeated. 🛡</b> With a constant-time comparison every guess takes the same time, so the timing bars carry no information. The recovered "PIN" (${found}) is random noise. Countermeasure trade-off: every check now costs worst-case time.`;
+    log(`🛡 Constant-time check defeated the attack.`, 'ok');
+  }
+  scRunning = false;
+});
+
+document.getElementById('btnScReset').addEventListener('click', () => {
+  scLog.innerHTML = ''; bars.innerHTML = '';
+  renderGuess('');
+  document.getElementById('scVerdict').style.display = 'none';
+});
+renderGuess('');
+</script>
+</body>
+</html>
